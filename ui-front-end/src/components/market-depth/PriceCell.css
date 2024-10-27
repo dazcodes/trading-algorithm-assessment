@@ -1,0 +1,14 @@
+.price-cell {
+  position: relative;
+  padding: 20px;
+  text-align: right;
+}
+
+.price-arrow {
+  margin-left: 5px;
+  color: green;
+}
+
+.price-arrow.decrease {
+  color: red;
+}

@@ -1,0 +1,47 @@
+/* MarketDepthPanel.css */
+.MarketDepthPanel {
+  width: 100%;
+  border-collapse: collapse;
+}
+th {
+  width: 70px;
+}
+
+.MarketDepthContainer {
+  display: flex;
+  flex-direction: column;
+}
+
+.quantity-bar {
+  position: relative;
+  width: 100px;
+  height: 20px;
+  background-color: #e0e0e0;
+  margin-right: 5px;
+  display: inline-block;
+  vertical-align: middle;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.quantity-fill {
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: width 0.3s ease;
+  color: white;
+}
+
+.bid-fill {
+  background-color: red;
+}
+
+.ask-fill {
+  background-color: blue;
+}
+
+.quantity-value {
+  position: relative;
+  z-index: 1;
+}
