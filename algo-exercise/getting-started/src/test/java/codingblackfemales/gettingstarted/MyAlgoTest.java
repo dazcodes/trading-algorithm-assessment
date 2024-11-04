@@ -5,6 +5,7 @@ import codingblackfemales.action.NoAction;
 import codingblackfemales.algo.AlgoLogic;
 import codingblackfemales.service.MarketDataService;
 import codingblackfemales.service.OrderService;
+import codingblackfemales.sotw.marketdata.BidLevel;
 import org.agrona.concurrent.UnsafeBuffer;
 import codingblackfemales.sotw.SimpleAlgoState;
 import codingblackfemales.sotw.SimpleAlgoStateImpl;
@@ -49,22 +50,6 @@ public class MyAlgoTest extends AbstractAlgoTest {
         System.out.println(" MyAlgoTest");
     }
 
-   @Test
-   public void testNoActionWhenSpreadIsBelowThreshold(){
-        algoState.getBidAt(0).
-   }
-
-
-    @Test
-    public void testCancelSellOrders() throws Exception {
-        send(createTick());
-        send(createTick2());
-        send(createTick3());
-        send(createTick4());
-
-
-
-    }
 
 @Test
         public void testDispatchThroughSequencer () throws Exception {
