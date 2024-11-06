@@ -14,14 +14,16 @@ import messages.order.Side;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Iterator;
+
 public class MyAlgoLogic implements AlgoLogic {
 
     private static final Logger logger = LoggerFactory.getLogger(MyAlgoLogic.class);
+    // Thresholds for buy and sell actions
+    private static long buyThreshold = 90; // Minimum acceptable bid price for a buy order
+    private static  long sellThreshold = 115; // Minimum acceptable ask price for a sell order
+    private static  long spreadThreshold = -3; // Minimum spread threshold for action
 
-    // Thresholds for buy and sell actions based on percentage deviations
-    private static final double buyThreshold = -1.5; // Buy when bid is 1.5% lower than recent trades
-    private static final double sellThreshold = 1.5; // Sell if best ask is 1.5% higher than recent trades
-    private static final double spreadThreshold = -2.5; // Minimum spread threshold as a percentage ideally wanted 0.5%
 
 
     @Override
@@ -40,6 +42,8 @@ public class MyAlgoLogic implements AlgoLogic {
             return NoAction.NoAction;
         }
 
+
+
         final BidLevel bidlevel = state.getBidAt(0);
         final long bestBidPrice = bidlevel.price;
         final long bidQuantity = bidlevel.quantity;
@@ -49,8 +53,6 @@ public class MyAlgoLogic implements AlgoLogic {
         final AskLevel asklevel = state.getAskAt(0);
         final long bestAskPrice = asklevel.price;
         final long askQuantity = asklevel.quantity;
-
-
 
 
         //calculate the spread
@@ -65,30 +67,32 @@ public class MyAlgoLogic implements AlgoLogic {
         final double spreadPercentage = (double) spread / midPrice * 100;
         logger.info("[MYALGO] Spread percentage: " + spreadPercentage + "%");
 
+        // Check for matching orders
+        matchOrders(state, bestBidPrice, bestAskPrice);
+
+
 
         // not to create or cancel orders because spread is small
-        if (spreadPercentage < spreadThreshold) {
-            logger.info("[MYALGO] The spread is small (" + spread + "), No Action");
+        if (spread < spreadThreshold) {
+            logger.info("[MYALGO] The spread is small " + spread + " No Action");
             return NoAction.NoAction;
 
         }
 
-        //Count the buy and sell orders
 
+//count the buy and sell orders
         long buyOrdersCount = state.getChildOrders().stream().filter(ChildOrder -> ChildOrder.getSide() == Side.BUY).count();
         long sellOrdersCount = state.getChildOrders().stream().filter(ChildOrder -> ChildOrder.getSide() == Side.SELL).count();
 
-//count the total filled quantity
-//        logger.info("[MYALGO] Total filled buy quantity: " + totalFilledBuyQuantity);
-//        logger.info("[MYALGO] Total filled sell quantity: " + totalFilledSellQuantity);
 
-        //create new buy orders if below best bid is threshold below threshold
-        if (buyOrdersCount < 5 && bestBidPrice < midPrice * (1 + buyThreshold /100.0)) {
+
+        //create new buy orders if there are less than 5 orders
+        if (buyOrdersCount < 5 ) {
             return createBuyOrder(state, buyOrdersCount, bidQuantity, bestBidPrice);
         }
 
-        //create new sell orders if  price above threshold percentage
-        if (sellOrdersCount < 5 && bestAskPrice > midPrice * (1 + sellThreshold / 100.0)) {
+        //create new sell orders if there are less than 5 order
+        if (sellOrdersCount < 5 ) {
             return createSellOrder(state, sellOrdersCount, askQuantity, bestAskPrice);
         }
 
@@ -97,7 +101,26 @@ public class MyAlgoLogic implements AlgoLogic {
         return cancelOrders(state, bestBidPrice, bestAskPrice);
     }
 
-    //create method to create new bid order
+    private void matchOrders(SimpleAlgoState state, long bestBidPrice, long bestAskPrice) {
+        Iterator<ChildOrder> iterator = state.getActiveChildOrders().iterator();
+
+        while (iterator.hasNext()) {
+            ChildOrder order = iterator.next();
+            if (order.getSide() == Side.BUY && order.getPrice() >= bestAskPrice) {
+                logger.info("[MYALGO] Matched BUY order: Order ID: #" + order.getOrderId() +", Side: " + order.getSide() + ", Price: " + order.getPrice() + ", Quantity: " + order.getQuantity());
+                iterator.remove(); // Remove matched order
+            } else if (order.getSide() == Side.SELL && order.getPrice() <= bestBidPrice) {
+                logger.info("[MYALGO] Matched SELL order: Order ID: #" + order.getOrderId() +", Side: " + order.getSide() + ", Price: " + order.getPrice() + ", Quantity: " + order.getQuantity());
+                iterator.remove(); // Remove matched order
+            }
+        }
+    }
+
+
+
+
+
+    //create method to create new buy order
     public Action createBuyOrder(SimpleAlgoState state, long buyOrdersCount, long bidQuantity, long bestBidPrice) {
         logger.info("[MYALGO] Creating new buy order: " + state.getChildOrders().size() + " orders and add to new buy order " + bidQuantity + " @ " + bestBidPrice);
         logger.info(state.getActiveChildOrders().toString());
@@ -120,15 +143,25 @@ public class MyAlgoLogic implements AlgoLogic {
         for (ChildOrder order : state.getActiveChildOrders()){
             logger.info("Order ID: #" + order.getOrderId() + ", Side: " + order.getSide() + ", Price: " + order.getPrice() + ", Quantity: " + order.getQuantity());
 
+            boolean buyOrder = order.getSide() ==Side.BUY;
+            boolean notBuyThreshold = order.getPrice() != buyThreshold;
+            boolean lessThanBuyThreshold = order.getPrice() < buyThreshold;
+
             // Cancel buy orders not matching the best price or below the buy threshold
-            if (order.getSide() == Side.BUY && order.getPrice() < bestBidPrice) {
-                logger.info("[MYALGO] Cancel BUY order #" + order.getOrderId() + " with price " + order.getPrice());
+            if  (buyOrder && (notBuyThreshold || lessThanBuyThreshold)) {
+                logger.info(String.format("The buy Threshold is %d", + buyThreshold ));
+                logger.info(String.format("[MYALGO] Cancel BUY order %d with price %d and quantity %d. The current best bid price is %d." ,+ order.getOrderId(), + order.getPrice(), + order.getQuantity(), + bestBidPrice));
                 return new CancelChildOrder(order);
             }
+            boolean sellTheOrder = order.getSide() ==Side.SELL;
+            boolean notSellThreshold = order.getPrice() != sellThreshold;
+            boolean lessThanSellThreshold = order.getPrice() < sellThreshold;
+
 
             // Cancel sell orders not matching the best price or below the sell threshold
-            if (order.getSide() == Side.SELL && order.getPrice() > bestAskPrice ) {
-                logger.info("[MYALGO] Cancel SELL order #" + order.getOrderId() + " with price " + order.getPrice());
+            if (sellTheOrder && (notSellThreshold || lessThanSellThreshold)) {
+                logger.info(String.format("The sell Threshold is %d", + sellThreshold ));
+                logger.info(String.format("[MYALGO] Cancel SELL order %d with price %d and quantity %d. The current best ask price is %d." ,+ order.getOrderId(), + order.getPrice(), + order.getQuantity(), + bestAskPrice));
                 return new CancelChildOrder(order);
             }
         }
@@ -136,8 +169,6 @@ public class MyAlgoLogic implements AlgoLogic {
         return NoAction.NoAction;
     }
 }
-
-
 
 
 

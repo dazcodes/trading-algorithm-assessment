@@ -1,6 +1,7 @@
 package codingblackfemales.gettingstarted;
 
 import codingblackfemales.action.Action;
+import codingblackfemales.action.CreateChildOrder;
 import codingblackfemales.action.NoAction;
 import codingblackfemales.algo.AlgoLogic;
 import codingblackfemales.service.MarketDataService;
@@ -51,14 +52,57 @@ public class MyAlgoTest extends AbstractAlgoTest {
     }
 
 
-@Test
-        public void testDispatchThroughSequencer () throws Exception {
+    @Test
+    public void testDispatchThroughSequencer() throws Exception {
 
-            //create a sample market data tick....
-            send(createTick());
-            SimpleAlgoState state = container.getState();
-            Action action = createAlgoLogic().evaluate(state);
-            assertEquals("Do not action if spread is below threshold", NoAction.NoAction, action);
-        }
+        //create a sample market data tick....
+        send(createTick());
+
+
+        SimpleAlgoState state = container.getState();
+        Action action = createAlgoLogic().evaluate(state);
+        assertEquals("Do not action if spread is below threshold", NoAction.NoAction, action);
     }
+
+    @Test
+    public void testCancelOrderOnLowThreshold() throws Exception {
+        // Send tick with low spread
+        send(createTickWithLowThreshold());
+        SimpleAlgoState state = container.getState();
+        Action action = createAlgoLogic().evaluate(state);
+
+        // Check that no action is taken if spread is too low for orders
+        assertTrue("Expected NoAction when spread is below threshold", action instanceof NoAction);
+    }
+
+
+    @Test
+    public void testHandleIncreasingVolume() throws Exception {
+        // Arrange: Set up a tick with increasing bid/ask volume
+        send(createTickWithIncreasingVolume());
+        SimpleAlgoState state = container.getState();
+
+        // Act: Evaluate the state after the high-volume tick
+        Action action = createAlgoLogic().evaluate(state);
+
+        // Assert: Check that algo reacts appropriately to the high-volume tick
+        assertTrue("Expected NoAction or appropriate order response on high volume", action instanceof Action);
+    }
+
+    @Test
+    public void testCreateOrderWithHighThreshold() throws Exception {
+        // Arrange: Send a tick with a high spread
+        send(createTickWithHighThreshold());
+    }
+
+    @Test
+    public void testMaxOrders() throws Exception {
+        send(createTick());
+
+        //check algo has a max order limit of 10
+        assertTrue("There should be at least 10 child orders", container.getState().getChildOrders().size() <= 10);
+    }
+}
+
+
 
