@@ -81,10 +81,10 @@ public abstract class AbstractAlgoTest extends SequencerTestCase {
         final ByteBuffer byteBuffer = ByteBuffer.allocateDirect(1024);
         final UnsafeBuffer directBuffer = new UnsafeBuffer(byteBuffer);
 
-        // Encode the message
+
         encoder.wrapAndApplyHeader(directBuffer, 0, headerEncoder);
 
-        // Set a high spread by configuring ask and bid levels
+
         encoder.venue(Venue.XLON);
         encoder.instrumentId(123L);
 
