@@ -1,13 +1,12 @@
 package codingblackfemales.gettingstarted;
 
 import codingblackfemales.action.Action;
-import codingblackfemales.action.CreateChildOrder;
+
 import codingblackfemales.action.NoAction;
 import codingblackfemales.algo.AlgoLogic;
 import codingblackfemales.service.MarketDataService;
 import codingblackfemales.service.OrderService;
-import codingblackfemales.sotw.marketdata.BidLevel;
-import org.agrona.concurrent.UnsafeBuffer;
+
 import codingblackfemales.sotw.SimpleAlgoState;
 import codingblackfemales.sotw.SimpleAlgoStateImpl;
 import messages.order.Side;
@@ -68,11 +67,37 @@ public class MyAlgoTest extends AbstractAlgoTest {
     public void testCancelOrderOnLowThreshold() throws Exception {
         // Send tick with low spread
         send(createTickWithLowThreshold());
+        //Retrieve the state from the container
         SimpleAlgoState state = container.getState();
         Action action = createAlgoLogic().evaluate(state);
 
         // Check that no action is taken if spread is too low for orders
         assertTrue("Expected NoAction when spread is below threshold", action instanceof NoAction);
+    }
+
+    @Test
+    public void testSellOrderCount() throws Exception{
+        send(createTick());
+
+        //Retrieve the state from the container
+        SimpleAlgoState state = container.getState();
+
+        //check if there at least 3 sell orders created
+        long sellOrdersCount = state.getChildOrders().stream().filter(childOrder -> childOrder.getSide() == Side.SELL).count();
+        Assert.assertTrue("There should be at least 3 SELL orders", sellOrdersCount >=3);
+
+    }
+
+    @Test
+    public void testBuyOrderCount() throws Exception{
+        send(createTick());
+        //Retrieve the state from the container
+        SimpleAlgoState state = container.getState();
+
+        //check if there at least 3 sell orders created
+        long buyOrdersCount = state.getChildOrders().stream().filter(childOrder -> childOrder.getSide() == Side.BUY).count();
+        Assert.assertTrue("There should be at least 3 BUY orders", buyOrdersCount >=3);
+
     }
 
 

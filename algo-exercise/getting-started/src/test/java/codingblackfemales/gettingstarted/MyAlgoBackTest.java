@@ -1,25 +1,15 @@
 package codingblackfemales.gettingstarted;
 
+;
 import codingblackfemales.algo.AlgoLogic;
-import codingblackfemales.sotw.ChildOrder;
+
 import messages.order.Side;
 import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
 
-/**
- * This test plugs together all of the infrastructure, including the order book (which you can trade against)
- * and the market data feed.
- *
- * If your algo adds orders to the book, they will reflect in your market data coming back from the order book.
- *
- * If you cross the srpead (i.e. you BUY an order with a price which is == or > askPrice()) you will match, and receive
- * a fill back into your order from the order book (visible from the algo in the childOrders of the state object.
- *
- * If you cancel the order your child order will show the order status as cancelled in the childOrders of the state object.
- *
- */
+
 public class MyAlgoBackTest extends AbstractAlgoBackTest {
 
     @Override
@@ -29,9 +19,29 @@ public class MyAlgoBackTest extends AbstractAlgoBackTest {
 
 
     @Before
+    public void setUp() {
 
-    public  void setup() {
-        container.getState().getChildOrders().clear();
+        System.out.println(" MyAlgoBackTest");
+    }
+
+    @Test
+
+    public void testOrderCount() throws Exception{
+        send(createTick());
+        send(createTick2());
+
+        var state = container.getState();
+
+        //Check buy order is created
+        long createBuyOrder = state.getChildOrders().stream().filter(childOrder -> childOrder.getSide()==Side.BUY).count();
+        assertEquals("At least one BUY order should be created", 5, createBuyOrder);
+
+        //check sell order is created
+        long createSellOrder = state.getChildOrders().stream().filter(childOrder -> childOrder.getSide()==Side.SELL).count();
+        assertEquals("At least one SELL order should be created", 5, createSellOrder);
+
+
+
 
     }
 
@@ -40,40 +50,34 @@ public class MyAlgoBackTest extends AbstractAlgoBackTest {
         //create a sample market data tick....
         send(createTick());
 
-        //ADD asserts when you have implemented your algo logic
-        //assertEquals(container.getState().getChildOrders().size(), 3);
-
         //when: market data moves towards us
         send(createTick2());
 
         //then: get the state
         var state = container.getState();
 
-        //Check things like filled quantity, cancelled order count etc....
-        //long filledQuantity = state.getChildOrders().stream().map(ChildOrder::getFilledQuantity).reduce(Long::sum).get();
-        //and: check that our algo state was updated to reflect our fills when the market data
-        //assertEquals(225, filledQuantity);
+
+
     }
 
     @Test public  void testForOrderManagement () throws Exception{
         send(createTick());
         send(createTick2());
+        send(createTickWithIncreasingVolume());
+        send(createTickWithHighThreshold());
 
         //check algo has a max order limit of 10
         assertTrue("There should be at least 10 child orders", container.getState().getChildOrders().size() <=10 );
     }
 
-//    @Test
-//
-//    public void testCancelOrders () throws Exception{
-//        for (int i = 0; i< 5; i++){
-//            container.getState().getChildOrders().add(new ChildOrder(Side.BUY, 500L + i, 110, 115, i + 1));
-//            send(createTick2());
-//            assertEquals(10, container.getState().getChildOrders().size());
-//            ChildOrder cancelOrders = container.getState().getChildOrders().stream().filter(order -> order.getState() == 2).findFirst().orElse(null);
-//            System.out.println("Check if there are cancelled orders. Found: " + (cancelOrders != null));
-//            assertEquals(true, cancelOrders != null);
-//
-//        }
-//    }
+
+
+
+    @Test
+    public void testCreateOrderWithHighThreshold() throws Exception {
+        // Arrange: Send a tick with a high spread
+        send(createTickWithHighThreshold());
+    }
+
+
 }

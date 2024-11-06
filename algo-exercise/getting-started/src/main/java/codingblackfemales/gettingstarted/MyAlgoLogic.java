@@ -20,7 +20,7 @@ public class MyAlgoLogic implements AlgoLogic {
 
     private static final Logger logger = LoggerFactory.getLogger(MyAlgoLogic.class);
     // Thresholds for buy and sell actions
-    private static long buyThreshold = 90; // Minimum acceptable bid price for a buy order
+    private static long buyThreshold = 95; // Minimum acceptable bid price for a buy order
     private static  long sellThreshold = 115; // Minimum acceptable ask price for a sell order
     private static  long spreadThreshold = -3; // Minimum spread threshold for action
 
